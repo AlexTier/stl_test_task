@@ -1,0 +1,60 @@
+# Laravel
+/vendor/
+/node_modules/
+/public/hot
+/public/storage
+/storage/*.key
+/storage/logs/*.log
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+
+# Environment files
+.env
+.env.backup
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Composer
+composer.phar
+composer.lock
+
+# NPM
+package-lock.json
+yarn.lock
+
+# Testing
+.phpunit.result.cache
+coverage/
+
+# Build artifacts
+/public/build
+/public/mix-manifest.json
+
+*.log
+*.sql
+*.bak
+*.swp
+*.orig
+*.tmp
+
+*.sqlite
+.DS_Store?
+
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.psd

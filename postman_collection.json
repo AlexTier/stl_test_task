@@ -1,0 +1,494 @@
+{
+	"info": {
+		"name": "Slot Booking API Tests",
+		"description": "Полный набор тестов для API бронирования слотов",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Availability",
+			"item": [
+				{
+					"name": "TC-01: Get Available Slots",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"pm.test(\"Each slot has required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    jsonData.forEach(function(slot) {",
+									"        pm.expect(slot).to.have.property('slot_id');",
+									"        pm.expect(slot).to.have.property('capacity');",
+									"        pm.expect(slot).to.have.property('remaining');",
+									"    });",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 200ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/slots/availability",
+							"host": ["{{base_url}}"],
+							"path": ["api", "slots", "availability"]
+						}
+					}
+				},
+				{
+					"name": "TC-02: Cache Test (Repeat Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response from cache is faster\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(100);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/slots/availability",
+							"host": ["{{base_url}}"],
+							"path": ["api", "slots", "availability"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Create Hold",
+			"item": [
+				{
+					"name": "TC-03: Create Hold Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has hold_id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('hold_id');",
+									"    pm.environment.set('hold_id', jsonData.hold_id);",
+									"});",
+									"",
+									"pm.test(\"Status is 'held'\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('held');",
+									"});",
+									"",
+									"pm.test(\"Has expires_at field\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('expires_at');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/slots/{{slot_id}}/hold",
+							"host": ["{{base_url}}"],
+							"path": ["api", "slots", "{{slot_id}}", "hold"]
+						}
+					}
+				},
+				{
+					"name": "TC-04: Idempotency Test (First Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Returns hold_id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.environment.set('idempotency_hold_id', jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Idempotency-Key",
+								"value": "550e8400-e29b-41d4-a716-446655440099"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/slots/{{slot_id}}/hold",
+							"host": ["{{base_url}}"],
+							"path": ["api", "slots", "{{slot_id}}", "hold"]
+						}
+					}
+				},
+				{
+					"name": "TC-04: Idempotency Test (Repeat Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 (not 201)\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns same hold_id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var savedHoldId = pm.environment.get('idempotency_hold_id');",
+									"    pm.expect(jsonData.id).to.eql(parseInt(savedHoldId));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Idempotency-Key",
+								"value": "550e8400-e29b-41d4-a716-446655440099"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/slots/{{slot_id}}/hold",
+							"host": ["{{base_url}}"],
+							"path": ["api", "slots", "{{slot_id}}", "hold"]
+						}
+					}
+				},
+				{
+					"name": "TC-06: Missing Idempotency Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message present\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/slots/{{slot_id}}/hold",
+							"host": ["{{base_url}}"],
+							"path": ["api", "slots", "{{slot_id}}", "hold"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Confirm Hold",
+			"item": [
+				{
+					"name": "TC-07: Confirm Hold Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Status is 'confirmed'\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('confirmed');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/holds/{{hold_id}}/confirm",
+							"host": ["{{base_url}}"],
+							"path": ["api", "holds", "{{hold_id}}", "confirm"]
+						}
+					}
+				},
+				{
+					"name": "TC-08: Already Confirmed",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test(\"Error message present\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/holds/{{hold_id}}/confirm",
+							"host": ["{{base_url}}"],
+							"path": ["api", "holds", "{{hold_id}}", "confirm"]
+						}
+					}
+				},
+				{
+					"name": "TC-09: Hold Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/holds/99999/confirm",
+							"host": ["{{base_url}}"],
+							"path": ["api", "holds", "99999", "confirm"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Cancel Hold",
+			"item": [
+				{
+					"name": "TC-11: Cancel Hold Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Status is 'cancelled'\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('cancelled');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Создаём новый холд перед отменой",
+									"const uuid = require('uuid');",
+									"pm.environment.set('cancel_idempotency_key', uuid.v4());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/holds/{{hold_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "holds", "{{hold_id}}"]
+						}
+					}
+				},
+				{
+					"name": "TC-13: Cancel Non-existent Hold",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/holds/99999",
+							"host": ["{{base_url}}"],
+							"path": ["api", "holds", "99999"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		},
+		{
+			"key": "slot_id",
+			"value": "1"
+		},
+		{
+			"key": "hold_id",
+			"value": "1"
+		}
+	]
+}
